@@ -1,0 +1,208 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: deny all access by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Primitive Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isVerifiedOwner(userId) {
+      return isVerified() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Entity Validation Blueprints ---
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'vaultInitialized', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'displayName', 'vaultInitialized', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid == userId && isValidId(data.uid)
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 254
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100
+        && data.vaultInitialized is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidVaultMasterConfig(data, userId) {
+      return data.keys().hasAll([
+          'userId', 'kdfAlgorithm', 'kdfMemoryKiB', 'kdfIterations', 'kdfParallelism',
+          'masterSalt', 'wrappedVaultKey', 'wrappedVaultKeyIv',
+          'recoverySalt', 'recoveryWrappedVaultKey', 'recoveryWrappedVaultKeyIv',
+          'recoveryKeyHint', 'keyVersion', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'userId', 'kdfAlgorithm', 'kdfMemoryKiB', 'kdfIterations', 'kdfParallelism',
+          'masterSalt', 'wrappedVaultKey', 'wrappedVaultKeyIv',
+          'recoverySalt', 'recoveryWrappedVaultKey', 'recoveryWrappedVaultKeyIv',
+          'recoveryKeyHint', 'keyVersion', 'createdAt', 'updatedAt'
+        ])
+        && data.userId is string && data.userId == userId && isValidId(data.userId)
+        && data.kdfAlgorithm == 'Argon2id'
+        && data.kdfMemoryKiB is int && data.kdfMemoryKiB >= 16384 && data.kdfMemoryKiB <= 262144
+        && data.kdfIterations is int && data.kdfIterations >= 1 && data.kdfIterations <= 20
+        && data.kdfParallelism is int && data.kdfParallelism >= 1 && data.kdfParallelism <= 8
+        && data.masterSalt is string && data.masterSalt.size() >= 16 && data.masterSalt.size() <= 64
+        && data.wrappedVaultKey is string && data.wrappedVaultKey.size() >= 32 && data.wrappedVaultKey.size() <= 512
+        && data.wrappedVaultKeyIv is string && data.wrappedVaultKeyIv.size() >= 12 && data.wrappedVaultKeyIv.size() <= 64
+        && data.recoverySalt is string && data.recoverySalt.size() >= 16 && data.recoverySalt.size() <= 64
+        && data.recoveryWrappedVaultKey is string && data.recoveryWrappedVaultKey.size() >= 32 && data.recoveryWrappedVaultKey.size() <= 512
+        && data.recoveryWrappedVaultKeyIv is string && data.recoveryWrappedVaultKeyIv.size() >= 12 && data.recoveryWrappedVaultKeyIv.size() <= 64
+        && data.recoveryKeyHint is string && data.recoveryKeyHint.size() >= 4 && data.recoveryKeyHint.size() <= 32
+        && data.keyVersion is int && data.keyVersion >= 1 && data.keyVersion <= 1000
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidUserSecuritySettings(data, userId) {
+      return data.keys().hasAll(['userId', 'autoLockMinutes', 'clipboardClearSeconds', 'requireReauthForReveal', 'updatedAt'])
+        && data.keys().hasOnly(['userId', 'autoLockMinutes', 'clipboardClearSeconds', 'requireReauthForReveal', 'updatedAt'])
+        && data.userId is string && data.userId == userId && isValidId(data.userId)
+        && data.autoLockMinutes is int && data.autoLockMinutes >= 1 && data.autoLockMinutes <= 120
+        && data.clipboardClearSeconds is int && data.clipboardClearSeconds >= 10 && data.clipboardClearSeconds <= 300
+        && data.requireReauthForReveal is bool
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidEncryptedCredential(data, userId, credentialId) {
+      return data.keys().hasAll(['id', 'userId', 'ciphertext', 'iv', 'keyVersion', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'userId', 'ciphertext', 'iv', 'keyVersion', 'createdAt', 'updatedAt'])
+        && data.id is string && data.id == credentialId && isValidId(data.id)
+        && data.userId is string && data.userId == userId && isValidId(data.userId)
+        && data.ciphertext is string && data.ciphertext.size() >= 16 && data.ciphertext.size() <= 32768
+        && data.iv is string && data.iv.size() >= 12 && data.iv.size() <= 64
+        && data.keyVersion is int && data.keyVersion >= 1 && data.keyVersion <= 1000
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // --- Collection Rules ---
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isVerifiedOwner(userId);
+      allow list: if false;
+
+      allow create: if isValidId(userId)
+        && isVerifiedOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isValidId(userId)
+        && isVerifiedOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().email == existing().email
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Action: Update display name or vaultInitialized status
+          incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'vaultInitialized', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['vaultInitialized', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'updatedAt'])
+        );
+
+      allow delete: if false;
+
+      // Key-derivation metadata & wrapped vault keys
+      match /vaultConfig/{configId} {
+        allow get: if isValidId(userId) && isValidId(configId) && configId == 'master' && isVerifiedOwner(userId);
+        allow list: if false;
+
+        allow create: if isValidId(userId) && isValidId(configId) && configId == 'master'
+          && isVerifiedOwner(userId)
+          && isValidVaultMasterConfig(incoming(), userId)
+          && existsAfter(/databases/$(database)/documents/users/$(userId))
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+
+        allow update: if isValidId(userId) && isValidId(configId) && configId == 'master'
+          && isVerifiedOwner(userId)
+          && isValidVaultMasterConfig(incoming(), userId)
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            // Action: Rotate Master Password wrapper
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'kdfAlgorithm', 'kdfMemoryKiB', 'kdfIterations', 'kdfParallelism',
+              'masterSalt', 'wrappedVaultKey', 'wrappedVaultKeyIv', 'keyVersion', 'updatedAt'
+            ]) ||
+            // Action: Rotate Recovery Key wrapper
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'recoverySalt', 'recoveryWrappedVaultKey', 'recoveryWrappedVaultKeyIv',
+              'recoveryKeyHint', 'updatedAt'
+            ])
+          );
+
+        allow delete: if false;
+      }
+
+      // User security settings
+      match /settings/{settingId} {
+        allow get: if isValidId(userId) && isValidId(settingId) && settingId == 'preferences' && isVerifiedOwner(userId);
+        allow list: if false;
+
+        allow create: if isValidId(userId) && isValidId(settingId) && settingId == 'preferences'
+          && isVerifiedOwner(userId)
+          && isValidUserSecuritySettings(incoming(), userId)
+          && existsAfter(/databases/$(database)/documents/users/$(userId))
+          && incoming().updatedAt == request.time;
+
+        allow update: if isValidId(userId) && isValidId(settingId) && settingId == 'preferences'
+          && isVerifiedOwner(userId)
+          && isValidUserSecuritySettings(incoming(), userId)
+          && incoming().userId == existing().userId
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'autoLockMinutes', 'clipboardClearSeconds', 'requireReauthForReveal', 'updatedAt'
+          ]);
+
+        allow delete: if false;
+      }
+
+      // Encrypted vault credential records
+      match /credentials/{credentialId} {
+        allow get: if isValidId(userId) && isValidId(credentialId) && isVerifiedOwner(userId);
+        allow list: if isValidId(userId) && isVerifiedOwner(userId) && resource.data.userId == request.auth.uid;
+
+        allow create: if isValidId(userId) && isValidId(credentialId)
+          && isVerifiedOwner(userId)
+          && isValidEncryptedCredential(incoming(), userId, credentialId)
+          && exists(/databases/$(database)/documents/users/$(userId))
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+
+        allow update: if isValidId(userId) && isValidId(credentialId)
+          && isVerifiedOwner(userId)
+          && isValidEncryptedCredential(incoming(), userId, credentialId)
+          && incoming().id == existing().id
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['ciphertext', 'iv', 'keyVersion', 'updatedAt']);
+
+        allow delete: if isValidId(userId) && isValidId(credentialId) && isVerifiedOwner(userId);
+      }
+    }
+  }
+}

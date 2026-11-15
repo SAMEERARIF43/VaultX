@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "src/lib/crypto.ts (hash-wasm Argon2id + WebCrypto AES-256-GCM)",
+  "kdfParams": {
+    "algorithm": "Argon2id",
+    "memoryKiB": 65536,
+    "iterations": 3,
+    "parallelism": 1
+  },
+  "masterPassword": "Synthetic-VaultX-Master#2026!",
+  "recoveryKey": "VX-NSJE-JES8-EH58-FXYD-7JDD-QZTK-RWD3-CC8D-JVY3-8DBJ-7AA3-3PMH-HKHZ",
+  "configData": {
+    "userId": "synthetic_interop_user_001",
+    "kdfAlgorithm": "Argon2id",
+    "kdfMemoryKiB": 65536,
+    "kdfIterations": 3,
+    "kdfParallelism": 1,
+    "masterSalt": "4l1dcSk3Y5ORXbZVbH0Muw==",
+    "wrappedVaultKey": "FjT2cX8GppwyfQrR+Druy+5e6A46u+1lVylL9CV2RJDFRr+MWTfG6jCtfFriyKLJ",
+    "wrappedVaultKeyIv": "XRurmo8R4oVs8pes",
+    "recoverySalt": "Vq4kzFcdTKLN5LJqEmxO5Q==",
+    "recoveryWrappedVaultKey": "LOs46teT7Z2rT2SS4yZL+mv8fshnauj+1YNH02WRZkKbBxRcyYos0JvVXMBx3cKk",
+    "recoveryWrappedVaultKeyIv": "RHC8DiJHoWpjCipl",
+    "recoveryKeyHint": "••••-HKHZ",
+    "keyVersion": 1
+  },
+  "credentials": [
+    {
+      "id": "cred_00000000000000000000000000000001",
+      "keyVersion": 1,
+      "ciphertext": "U/KV8p1B6rxKmetEYxsDYyu/jJy0+jpZ25RfY0TvxQs2FNb3BbHu04mozuXECS5vwRv7BqGceB7REjAF2aIVm9ONKT3YVJ1NXvpybCDWBGAUN3HZbAQKZm0bbYgwuBMEHLGKGB3aQQoaMUiLU3fDgoWgBSuUbgrz0nxsMLtCH7kBM3Mm/gZ7pn9UlcXhrQWqju5NzubuALQQZD0YlmXu4cQO99+qyeopotVzf7UuXDt6ZKnPm9AbVho7GVRbLUT26hNykjTT0DNMiBSCDv66cUirJ/zxsqvMZ+4=",
+      "iv": "Cwy9mq8HFsS2dRK2",
+      "expectedPayload": {
+        "title": "Synthetic GitHub",
+        "username": "synthetic.dev@vaultx.test",
+        "password": "S3cure!Pass#9081_Synth",
+        "url": "https://github.com",
+        "category": "Developer",
+        "notes": "Synthetic ASCII interop test vector #1"
+      }
+    },
+    {
+      "id": "cred_00000000000000000000000000000002",
+      "keyVersion": 1,
+      "ciphertext": "kZj/ao+1xX9YbrYWSOAKgT5dosDhVv/ByS1L4IT93J71kldUpDDu8Ol3R5jZLnRWxBjiIqgaZ4sR899k6NcMzw/FM6Kmr3UuxNoqpaWqGsp9z3i76h0DrQFtZsedYsM9cYPBGnijPTyMkabaRrJUV54q8Wxsc2UFyvLGokUCc34WxbVf/jK9vMq79dmSdcl9xytM5A0sb6MGkBVLWha9FS9wjBboeQdlrRiLaNWLYHdAQjZSMo3shtBp01ge8GFiRO1tLsWUU3tdF7hwRGfdcFhUAoKN7a8njY17xGRinQS6R1D69i9+qmezG9FgxOIPabYRbbL75mmDR2WwL9KNaMFJ",
+      "iv": "KTeepT5+eKmF7EaZ",
+      "expectedPayload": {
+        "title": "VaultX — 日本語 & \"Quotes\"",
+        "username": "üser+tag@example.org",
+        "password": "P@ss\\w0rd\"🔐$%^&*()",
+        "url": "https://accounts.example.org/login?next=%2Fvault",
+        "category": "Personal",
+        "notes": "Line 1\nLine 2\tTab — Unicode ✓"
+      }
+    }
+  ]
+}

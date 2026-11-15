@@ -1,0 +1,215 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Isolated authenticated user account metadata and vault initialization status.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 254
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "vaultInitialized": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "displayName", "vaultInitialized", "createdAt", "updatedAt"]
+    },
+    "VaultMasterConfig": {
+      "title": "VaultMasterConfig",
+      "description": "Argon2id key-derivation parameters and AES-256-GCM wrapped vault keys. Never contains plaintext master passwords or keys.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "kdfAlgorithm": {
+          "type": "string",
+          "enum": ["Argon2id"]
+        },
+        "kdfMemoryKiB": {
+          "type": "integer"
+        },
+        "kdfIterations": {
+          "type": "integer"
+        },
+        "kdfParallelism": {
+          "type": "integer"
+        },
+        "masterSalt": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 64
+        },
+        "wrappedVaultKey": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 512
+        },
+        "wrappedVaultKeyIv": {
+          "type": "string",
+          "minLength": 12,
+          "maxLength": 64
+        },
+        "recoverySalt": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 64
+        },
+        "recoveryWrappedVaultKey": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 512
+        },
+        "recoveryWrappedVaultKeyIv": {
+          "type": "string",
+          "minLength": 12,
+          "maxLength": 64
+        },
+        "recoveryKeyHint": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 32
+        },
+        "keyVersion": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "kdfAlgorithm",
+        "kdfMemoryKiB",
+        "kdfIterations",
+        "kdfParallelism",
+        "masterSalt",
+        "wrappedVaultKey",
+        "wrappedVaultKeyIv",
+        "recoverySalt",
+        "recoveryWrappedVaultKey",
+        "recoveryWrappedVaultKeyIv",
+        "recoveryKeyHint",
+        "keyVersion",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UserSecuritySettings": {
+      "title": "UserSecuritySettings",
+      "description": "User vault security preferences such as auto-lock timeout and clipboard wipe duration.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "autoLockMinutes": {
+          "type": "integer"
+        },
+        "clipboardClearSeconds": {
+          "type": "integer"
+        },
+        "requireReauthForReveal": {
+          "type": "boolean"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["userId", "autoLockMinutes", "clipboardClearSeconds", "requireReauthForReveal", "updatedAt"]
+    },
+    "EncryptedCredentialRecord": {
+      "title": "EncryptedCredentialRecord",
+      "description": "Client-side AES-256-GCM encrypted credential payload with unique 96-bit nonce. Zero plaintext secrets.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ciphertext": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 32768
+        },
+        "iv": {
+          "type": "string",
+          "minLength": 12,
+          "maxLength": 64
+        },
+        "keyVersion": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "userId", "ciphertext", "iv", "keyVersion", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Authenticated user profile document isolated to {userId}."
+    },
+    "/users/{userId}/vaultConfig/{configId}": {
+      "schema": { "$ref": "#/entities/VaultMasterConfig" },
+      "description": "Key-derivation metadata and wrapped vault encryption keys for {userId}."
+    },
+    "/users/{userId}/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/UserSecuritySettings" },
+      "description": "Security preferences for {userId}."
+    },
+    "/users/{userId}/credentials/{credentialId}": {
+      "schema": { "$ref": "#/entities/EncryptedCredentialRecord" },
+      "description": "Encrypted vault credential records owned by {userId}."
+    }
+  }
+}
